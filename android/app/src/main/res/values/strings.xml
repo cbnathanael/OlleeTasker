@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Ollee Watch for Tasker</string>
+    <string name="action_message">Ollee: Send message</string>
+    <string name="action_tone">Ollee: Send notification tone</string>
+    <string name="action_connection">Ollee: Connection</string>
+    <string name="event_name">Ollee Watch Event</string>
+    <string name="label_operation">Operation</string>
+    <string name="label_address">Watch address (MAC or %variable; empty = saved watch)</string>
+    <string name="hint_address">AA:BB:CC:DD:EE:FF</string>
+    <string name="pick_watch">Choose watch</string>
+    <string name="pick_watch_title">Choose your Ollee watch</string>
+    <string name="label_value">Message</string>
+    <string name="hint_value">e.g. hello</string>
+    <string name="label_format">Format</string>
+    <string name="message_limit">Sent as one write: prefix, notification number, chime repeat count, then the message. Anything past 20 bytes is cut off.</string>
+    <string name="message_preview">Sends: %1$s (%2$d of %3$d bytes). Anything past %3$d bytes is cut off.</string>
+    <string name="raw_message">Send the message only (no prefix, notification number or repeat count)</string>
+    <string name="message_limit_raw">Sent as one write, exactly as entered. Anything past 20 bytes is cut off.</string>
+    <string name="label_prefix">Prefix (text or %variable)</string>
+    <string name="hint_prefix">OW</string>
+    <string name="label_event_type">Event</string>
+    <string name="label_match">Message filter</string>
+    <string name="hint_pattern">Text to match</string>
+    <string name="event_help">Outputs: %ollee_event, %ollee_address, %ollee_message, %ollee_hex, %ollee_reason. The link must be running (Connect action, or Connect in the Ollee Watch plugin app) to receive events.</string>
+    <string name="cancel">Cancel</string>
+    <string name="save">Save</string>
+    <string name="connect">Connect</string>
+    <string name="pause">Pause</string>
+    <string name="resume">Resume</string>
+    <string name="disconnect">Disconnect</string>
+    <string name="grant_permissions">Grant permissions</string>
+    <string name="battery_optimization">Turn off battery optimization</string>
+    <string name="permissions_ok">All granted</string>
+    <string name="battery_ok">Off. The plugin can stay connected in the background.</string>
+    <string name="choose_watch_first">Choose a watch first</string>
+    <string name="bluetooth_off">Bluetooth is off or unavailable</string>
+    <string name="grant_then_retry">Grant the Bluetooth permissions, then tap again</string>
+    <string name="notification_channel">Watch connection</string>
+    <string name="notification_title">Ollee watch</string>
+    <string name="permissions_missing">Some permissions are missing. Tap to grant.</string>
+    <string name="permissions_denied">Permissions are still missing. Grant them in the app settings.</string>
+    <string name="app_settings">App settings</string>
+    <string name="battery_on">On. Android may stop the plugin from reconnecting. Tap to turn off.</string>
+    <string name="watch_not_chosen">Not chosen</string>
+
+    <!-- Main screen -->
+    <string name="settings">Settings</string>
+    <string name="connection">Connection</string>
+    <string name="main_status">Watch: %1$s\nLink: %2$s</string>
+    <string name="warning_no_watch">• No watch chosen</string>
+    <string name="warning_permissions">• Bluetooth or notification permission missing</string>
+    <string name="warning_battery">• Battery optimization is on, which may block reconnects</string>
+    <string name="warning_fix">Tap here to fix in Settings.</string>
+    <string name="using_with_tasker">Using with Tasker</string>
+
+    <!-- Setup wizard -->
+    <string name="back">Back</string>
+    <string name="next">Next</string>
+    <string name="skip">Skip</string>
+    <string name="finish">Finish</string>
+    <string name="setup_step_count">Step %1$d of %2$d</string>
+    <string name="setup_step_done">✓ Done</string>
+    <string name="setup_step_pending">Not done yet. You can skip this and finish it later in Settings.</string>
+    <string name="setup_watch_status">✓ Watch %1$s\nLink: %2$s</string>
+    <string name="setup_welcome_title">Welcome</string>
+    <string name="setup_welcome_body">Ollee Watch for Tasker keeps a Bluetooth connection to your Ollee watch, so Tasker can send messages to your watch face and react to messages from it.\n\nA few quick steps will get it set up.</string>
+    <string name="setup_permissions_title">Allow Bluetooth access</string>
+    <string name="setup_permissions_body">The plugin needs Bluetooth permission to find and connect to your watch, and notification permission to show that the connection is running.</string>
+    <string name="setup_battery_title">Keep running in the background</string>
+    <string name="setup_battery_body">Turn off battery optimization for this app so Android doesn\'t stop it, and so it can reconnect when your watch comes back in range.</string>
+    <string name="setup_watch_title">Choose your watch</string>
+    <string name="setup_watch_body">Keep the watch nearby. If the Ollee app is connected to the watch, close it first, because only one app can connect at a time.</string>
+    <string name="setup_tasker_title">Use it in Tasker</string>
+    <string name="setup_tasker_body">• Send to the watch: Task › Plugin › Ollee Watch for Tasker › Ollee: Send message (or Send notification tone).\n• React to the watch: Profile › Event › Plugin › Ollee Watch Event. The message is in %ollee_message.\n• Share the watch with the Ollee app: create a profile Application › Ollee, with Ollee: Connection › Pause link as the enter task and Ollee: Connection › Resume link as the exit task.</string>
+
+    <!-- Settings -->
+    <string name="settings_section_watch">Watch</string>
+    <string name="settings_section_background">Permissions and background</string>
+    <string name="settings_section_app">App</string>
+    <string name="settings_watch">Watch</string>
+    <string name="settings_permissions">Permissions</string>
+    <string name="settings_battery">Battery optimization</string>
+    <string name="settings_run_setup">Run setup again</string>
+    <string name="settings_run_setup_summary">Go through the first-time setup steps</string>
+    <string name="settings_about">About</string>
+    <string name="settings_version">Version %1$s</string>
+
+    <!-- Tones -->
+    <string name="tones">Notification tones</string>
+    <string name="tones_intro">Create up to 5 beep patterns to send to the watch. Each is sent as one message: OWT|, the tone\'s number (0–4), then one letter per beep (lowercase = style 0, uppercase = style 1; a = 0 ms gap, b = 50 ms, … z = 1250 ms).</string>
+    <string name="tones_empty">No tones yet</string>
+    <string name="add_tone">Add tone</string>
+    <string name="tones_full">Maximum of %1$d tones reached</string>
+    <string name="new_tone">New tone</string>
+    <string name="edit_tone">Edit tone</string>
+    <string name="tone_name">Name</string>
+    <string name="beeps">Beeps</string>
+    <string name="beeps_help">For each beep, choose style 0 or 1 and the gap before the next beep (0–1250 ms, rounded to 50 ms).</string>
+    <string name="style_0">0</string>
+    <string name="style_1">1</string>
+    <string name="style_0_description">Style 0</string>
+    <string name="style_1_description">Style 1</string>
+    <string name="gap">Gap</string>
+    <string name="ms">ms</string>
+    <string name="remove_beep">Remove beep</string>
+    <string name="add_beep">Add beep</string>
+    <string name="test_on_watch">Test on watch</string>
+    <string name="delete">Delete</string>
+    <string name="delete_tone_title">Delete \"%1$s\"?</string>
+    <string name="delete_tone_message">Its number is freed for a new tone. Tasker actions that send this tone by name will fail until you create one with the same name.</string>
+    <string name="tone_preview">Message: %1$s (%2$d of %3$d bytes)\nPattern: %4$s</string>
+    <string name="tone_needs_beeps">Add at least one beep</string>
+    <string name="tone_sent">Sent %1$s</string>
+    <plurals name="tone_summary">
+        <item quantity="one">%1$d beep · %2$s</item>
+        <item quantity="other">%1$d beeps · %2$s</item>
+    </plurals>
+    <string name="label_tone">Tone (name or %variable)</string>
+    <string name="label_tone_optional">Notification number (0–4, blank for none, or %variable)</string>
+    <string name="hint_no_tone">None (-)</string>
+    <string name="label_repeat">Repeat chime (0–9, blank for 0, or %variable)</string>
+    <string name="hint_repeat">0</string>
+    <string name="no_tone">No tone (-)</string>
+    <string name="tone_slot_name">%1$d · %2$s</string>
+    <string name="empty_slot">(empty)</string>
+    <string name="choose_tone">Choose tone</string>
+    <string name="no_tones_yet">No tones saved. Create them under Notification tones in the Ollee Watch app.</string>
+</resources>
