@@ -20,6 +20,18 @@ and watch → phone `Ollee.send(...)` messages become Tasker events.
 The link restarts after a reboot or app update if it was left enabled. If the watch goes out of range,
 the plugin retries after 1 s, 10 s and 30 s, then waits for Android to reconnect when the watch reappears.
 
+To turn this off, uncheck **Auto-reconnect** under the Connect and Pause buttons on the main screen. The link then stops, as if you'd chosen **Disconnect**,
+whenever the watch disconnects, a connection attempt fails, or the phone reboots. Nothing reconnects until you run
+**Connect** (in the app or with the *Ollee: Connection* action), and sends fail while it's stopped.
+
+### Low-power connection
+
+**Settings → Request low power** works like the Gadgetbridge option of the same name. After each connection the plugin asks
+Android for a low-power connection (`CONNECTION_PRIORITY_LOW_POWER`: roughly a 100–125 ms connection interval with
+slave latency 2) instead of the balanced default. The watch's radio wakes less often, which saves battery, but messages
+can take up to about half a second longer. It's a request: the watch can refuse it or choose its own parameters.
+Changing it applies right away if connected. It's off by default; if connections become unreliable, turn it off.
+
 ## Sharing the watch with the Ollee app
 
 Only one app can hold the watch connection at a time. Have Tasker hand it over to the Ollee app:
@@ -72,17 +84,31 @@ The editor shows a live preview of exactly what will be sent.
 
 ## Notification tones
 
-On the main screen, **Notification tones** lets you create up to 5 named beep patterns, numbered 0–4. A tone keeps
-its number when others are deleted; new tones fill the first free number. Each beep has a style
-(0 or 1) and a gap in ms before the next beep (0–1250 ms, rounded to 50 ms). A tone can have up to 15 beeps.
-Use **Test on watch** in the editor, and the Tasker action **Send notification tone** (tone name or %variable)
-to send one. Tones are looked up by name when the action runs, so editing a tone updates every task using it.
+On the main screen, **Notification tones** lists the five beep patterns, numbered 0–4. Tap one to edit its
+name and beeps. Each beep has a style (0 or 1) and a gap in ms before the next beep (0–1250 ms, rounded to 50 ms).
+A tone can have up to 15 beeps. **Reset to default** (in the editor's menu) restores the factory tone for that
+number. The defaults, named *Tone 0*–*Tone 4*, are (after rounding to 50 ms):
+
+| # | Pattern                                        | Sent as       |
+|---|------------------------------------------------|---------------|
+| 0 | `[[0,300],[1,50],[1,0]]`                       | `OWT\|0gBA`   |
+| 1 | `[[1,800],[0,50],[0,50],[0,50],[0,0]]`         | `OWT\|1Qbbba` |
+| 2 | `[[1,100],[1,100],[1,100],[1,0]]`              | `OWT\|2CCCA`  |
+| 3 | `[[0,50],[1,800],[0,150],[0,150],[0,0]]`       | `OWT\|3bQdda` |
+| 4 | `[[0,50],[1,500],[1,50],[0,0]]`                | `OWT\|4bKBa`  |
+
+**Save** stores the tone in the app and sends it to the watch (`OWT|…`), then shows whether the send worked. The
+tone stays saved even if the watch can't be reached. The Tasker action **Send notification tone** (tone name or
+%variable) also stores a tone on the watch. Tones are looked up by name when the action runs, so editing a tone
+updates every task using it.
 
 A tone is sent as a single message: `OWT|`, the tone's number (0–4), then one letter per beep. Lowercase means
 style 0 and uppercase means style 1. The letter's position gives the gap: `a` = 0 ms, `b` = 50 ms, … `z` = 1250 ms.
 For example, `[[0,300],[0,300],[1,0]]` saved as tone 2 is sent as `OWT|2ggA`. The watch can store each pattern by
-its number, so a later **Send message** such as `OW23Hello` plays tone 2 and repeats it 3 times. (Adding or editing a tone in the app sends
-nothing; run **Send notification tone** or **Test on watch** to give the watch the pattern.)
+its number, so a later **Send message** such as `OW23Hello` plays tone 2 and repeats it 3 times.
+
+**Test on watch** in the editor sends `OWA|` plus the letters (e.g. `OWA|ggA`) for the pattern as currently edited.
+The watch plays it once without storing it, and nothing is saved in the app.
 
 Decoder for the watch face:
 
@@ -102,6 +128,8 @@ function decodeTone(s) {              // s = "ggA"
 function ble_rx(data) {
   if (data.substr(0, 4) == "OWT|") {                  // "OWT|2ggA": store tone 2
     tones[+data[4]] = decodeTone(data.substr(5));
+  } else if (data.substr(0, 4) == "OWA|") {           // "OWA|ggA": play once, don't store
+    playPattern(decodeTone(data.substr(4)));
   } else if (data.substr(0, 2) == "OW") {             // "OW23Hello": tone 2, repeat 3 times, text "Hello"
     var n = data[2], repeats = +data[3];
     if (n != "-" && tones[+n]) {
@@ -125,7 +153,7 @@ Variables: `%ollee_event`, `%ollee_address`, `%ollee_message` (text), `%ollee_he
 - A successful write means the watch's Bluetooth stack received the bytes. The watch face only gets
   them while it is on screen and subscribed to `E_BLE_RX`, or after it calls `Ollee.subscribe(E_BLE_RX)`.
 - `Ollee.send` messages arrive as 20-byte notifications. The plugin treats a notification shorter than
-  20 bytes, or a 300 ms pause, as the end of a message. Two messages sent back-to-back where the first
+  20 bytes, or a 500 ms pause, as the end of a message. Two messages sent back-to-back where the first
   is an exact multiple of 20 bytes may be merged.
 - The RX/TX characteristic UUIDs (`c6fb0002-…`, `c6fb0003-…`) are inferred from the documented Forge
   service UUID `c6fb0001-a37d-40ac-89be-887d25e1f5b3`. The plugin also matches characteristics by the

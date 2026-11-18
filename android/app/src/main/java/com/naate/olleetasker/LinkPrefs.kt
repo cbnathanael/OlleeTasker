@@ -21,6 +21,16 @@ class LinkPrefs(context: Context) {
         get() = prefs.getBoolean(KEY_PAUSED, false)
         set(value) = prefs.edit().putBoolean(KEY_PAUSED, value).apply()
 
+    /** When false, a lost or failed connection stops the link instead of retrying; only Connect starts it again. */
+    var autoReconnect: Boolean
+        get() = prefs.getBoolean(KEY_AUTO_RECONNECT, true)
+        set(value) = prefs.edit().putBoolean(KEY_AUTO_RECONNECT, value).apply()
+
+    /** When true, asks Android for a low-power connection (longer interval, more latency); otherwise balanced. */
+    var lowPower: Boolean
+        get() = prefs.getBoolean(KEY_LOW_POWER, false)
+        set(value) = prefs.edit().putBoolean(KEY_LOW_POWER, value).apply()
+
     /** True once the first-time setup wizard has been completed (or skipped). Existing users count as set up. */
     var setupDone: Boolean
         get() = prefs.getBoolean(KEY_SETUP_DONE, address != null)
@@ -31,5 +41,7 @@ class LinkPrefs(context: Context) {
         const val KEY_ADDRESS = "address"
         const val KEY_ENABLED = "enabled"
         const val KEY_PAUSED = "paused"
+        const val KEY_AUTO_RECONNECT = "auto_reconnect"
+        const val KEY_LOW_POWER = "low_power"
     }
 }

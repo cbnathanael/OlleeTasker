@@ -11,6 +11,7 @@ data class Beep(val style: Int, val gapMs: Int)
  * A named beep pattern. It is sent to the watch as `OWT|`, the tone's slot digit (0–4), then one letter per beep:
  * lowercase for style 0, uppercase for style 1, and the letter's position (a = 0) times [STEP_MS] as the gap.
  * For example [[0,300],[0,300],[1,0]] in slot 2 is sent as "OWT|2ggA".
+ * To play a pattern once without storing it on the watch, it is sent as `OWA|` plus the letters, e.g. "OWA|ggA".
  */
 data class Tone(val name: String, val beeps: List<Beep>) {
 
@@ -25,12 +26,18 @@ data class Tone(val name: String, val beeps: List<Beep>) {
 
     fun messageBytes(slot: Int): ByteArray = Ble.encodeWatchText(message(slot))
 
+    /** The message that plays this pattern once on the watch without storing it, e.g. "OWA|ggA". */
+    fun testMessage(): String = TEST_PREFIX + pattern()
+
+    fun testMessageBytes(): ByteArray = Ble.encodeWatchText(testMessage())
+
     fun toJson(): JSONObject = JSONObject()
         .put("name", name)
         .put("beeps", JSONArray(beeps.map { JSONArray(listOf(it.style, it.gapMs)) }))
 
     companion object {
         const val PREFIX = "OWT|"
+        const val TEST_PREFIX = "OWA|"
         const val STEP_MS = 50
         const val MAX_GAP_MS = 25 * STEP_MS
         const val MAX_BEEPS = Ble.MAX_WRITE_BYTES - PREFIX.length - 1
@@ -40,6 +47,15 @@ data class Tone(val name: String, val beeps: List<Beep>) {
         fun roundGap(ms: Int): Int = gapSteps(ms) * STEP_MS
 
         private fun gapSteps(ms: Int): Int = ((ms + STEP_MS / 2) / STEP_MS).coerceIn(0, 25)
+
+        /** The factory tone for each slot. Gaps are rounded to [STEP_MS] (e.g. 70 → 50, 125 → 150), as sent. */
+        val DEFAULTS: List<Tone> = listOf(
+            listOf(0 to 300, 1 to 70, 1 to 0),
+            listOf(1 to 800, 0 to 40, 0 to 40, 0 to 40, 0 to 0),
+            listOf(1 to 100, 1 to 100, 1 to 100, 1 to 0),
+            listOf(0 to 50, 1 to 800, 0 to 125, 0 to 125, 0 to 0),
+            listOf(0 to 50, 1 to 500, 1 to 70, 0 to 0),
+        ).mapIndexed { slot, beeps -> Tone("Tone $slot", beeps.map { (style, gap) -> Beep(style, roundGap(gap)) }) }
 
         fun fromJson(o: JSONObject): Tone {
             val arr = o.getJSONArray("beeps")
@@ -53,60 +69,44 @@ data class Tone(val name: String, val beeps: List<Beep>) {
 }
 
 /**
- * The user's saved tones, in [Tone.MAX_TONES] fixed slots (0–4). A tone keeps its slot number when other
- * tones are deleted, so the notification number in Tasker actions keeps pointing at the same tone.
+ * The tones in the [Tone.MAX_TONES] fixed slots (0–4). Every slot always holds a tone: the user's saved one,
+ * or [Tone.DEFAULTS] for that slot.
  */
 class ToneStore(context: Context) {
     private val prefs = context.applicationContext.getSharedPreferences("tones", Context.MODE_PRIVATE)
 
-    fun slots(): List<Tone?> {
+    fun slots(): List<Tone> {
         val json = prefs.getString(KEY_TONES, null)
         val stored = runCatching {
             val arr = JSONArray(json)
             (0 until arr.length()).map { if (arr.isNull(it)) null else Tone.fromJson(arr.getJSONObject(it)) }
         }.getOrDefault(emptyList())
-        return List(Tone.MAX_TONES) { stored.getOrNull(it) }
+        return List(Tone.MAX_TONES) { stored.getOrNull(it) ?: Tone.DEFAULTS[it] }
     }
 
-    fun all(): List<Tone> = slots().filterNotNull()
-
-    fun find(name: String): Tone? = all().firstOrNull { it.name.equals(name.trim(), ignoreCase = true) }
+    fun find(name: String): Tone? = slots().firstOrNull { it.name.equals(name.trim(), ignoreCase = true) }
 
     /** The slot of the tone named [name], or -1. */
-    fun slotOf(name: String): Int = slots().indexOfFirst { it?.name.equals(name.trim(), ignoreCase = true) }
+    fun slotOf(name: String): Int = slots().indexOfFirst { it.name.equals(name.trim(), ignoreCase = true) }
 
-    /** Saves [tone] in [slot] (or the first free slot if [slot] is -1). Returns an error message, or null on success. */
+    /** Saves [tone] in [slot]. Returns an error message, or null on success. */
     fun put(slot: Int, tone: Tone): String? {
         val tones = slots().toMutableList()
-        val others = tones.filterIndexed { i, _ -> i != slot }.filterNotNull()
-        val target = if (slot in tones.indices) slot else tones.indexOfFirst { it == null }
+        val others = tones.filterIndexed { i, _ -> i != slot }
         when {
+            slot !in tones.indices -> return "Tone number must be 0–${Tone.MAX_TONES - 1}"
             tone.name.isBlank() -> return "Enter a name"
             tone.beeps.isEmpty() -> return "Add at least one beep"
             tone.beeps.size > Tone.MAX_BEEPS -> return "A tone can have at most ${Tone.MAX_BEEPS} beeps"
             others.any { it.name.equals(tone.name, ignoreCase = true) } -> return "Another tone is already named \"${tone.name}\""
-            others.any { it.pattern() == tone.pattern() } ->
-                return "This pattern is the same as \"${others.first { it.pattern() == tone.pattern() }.name}\""
-            target == -1 -> return "You can save up to ${Tone.MAX_TONES} tones"
         }
-        tones[target] = tone
+        tones[slot] = tone
         write(tones)
         return null
     }
 
-    /** The slot a new tone would be saved in, or -1 if all are used. */
-    fun firstFreeSlot(): Int = slots().indexOfFirst { it == null }
-
-    fun delete(slot: Int) {
-        val tones = slots().toMutableList()
-        if (slot in tones.indices) {
-            tones[slot] = null
-            write(tones)
-        }
-    }
-
-    private fun write(tones: List<Tone?>) {
-        prefs.edit().putString(KEY_TONES, JSONArray(tones.map { it?.toJson() ?: JSONObject.NULL }).toString()).apply()
+    private fun write(tones: List<Tone>) {
+        prefs.edit().putString(KEY_TONES, JSONArray(tones.map { it.toJson() }).toString()).apply()
     }
 
     private companion object {

@@ -17,15 +17,18 @@ import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import org.json.JSONObject
+import kotlin.concurrent.thread
 
-/** Creates or edits one beep tone. */
+/** Edits the beep tone in one of the [Tone.MAX_TONES] slots. */
 class ToneEditActivity : AppCompatActivity() {
 
-    private var index = -1
+    private var index = 0
     private lateinit var name: EditText
     private lateinit var beepList: LinearLayout
     private lateinit var addBeep: Button
     private lateinit var preview: TextView
+    private lateinit var saveButton: Button
+    private lateinit var testButton: Button
     private val watcher = object : TextWatcher {
         override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
         override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
@@ -39,27 +42,26 @@ class ToneEditActivity : AppCompatActivity() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         OlleeLink.init(this)
 
-        index = intent.getIntExtra(EXTRA_INDEX, -1)
+        index = intent.getIntExtra(EXTRA_INDEX, 0).coerceIn(0, Tone.MAX_TONES - 1)
         name = findViewById(R.id.tone_name)
         beepList = findViewById(R.id.beep_list)
         addBeep = findViewById(R.id.add_beep)
         preview = findViewById(R.id.preview)
-        setTitle(if (index == -1) R.string.new_tone else R.string.edit_tone)
+        title = getString(R.string.edit_tone, index)
 
         val tone = savedInstanceState?.getString(STATE_TONE)?.let { Tone.fromJson(JSONObject(it)) }
-            ?: ToneStore(this).slots().getOrNull(index)
-            ?: Tone("", listOf(Beep(0, 300), Beep(0, 300), Beep(1, 0)))
-        name.setText(tone.name)
+            ?: ToneStore(this).slots()[index]
         name.addTextChangedListener(watcher)
-        tone.beeps.forEach(::addBeepRow)
-        updatePreview()
+        show(tone)
 
         addBeep.setOnClickListener {
             addBeepRow(Beep(0, 300))
             updatePreview()
         }
-        findViewById<Button>(R.id.test).setOnClickListener { test() }
-        findViewById<Button>(R.id.save).setOnClickListener { save() }
+        testButton = findViewById(R.id.test)
+        saveButton = findViewById(R.id.save)
+        testButton.setOnClickListener { test() }
+        saveButton.setOnClickListener { save() }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -68,13 +70,13 @@ class ToneEditActivity : AppCompatActivity() {
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        if (index != -1) menuInflater.inflate(R.menu.tone_edit, menu)
+        menuInflater.inflate(R.menu.tone_edit, menu)
         return true
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        if (item.itemId == R.id.action_delete) {
-            confirmDelete()
+        if (item.itemId == R.id.action_reset) {
+            confirmReset()
             return true
         }
         return super.onOptionsItemSelected(item)
@@ -83,6 +85,13 @@ class ToneEditActivity : AppCompatActivity() {
     override fun onSupportNavigateUp(): Boolean {
         finish()
         return true
+    }
+
+    private fun show(tone: Tone) {
+        name.setText(tone.name)
+        beepList.removeAllViews()
+        tone.beeps.forEach(::addBeepRow)
+        updatePreview()
     }
 
     private fun addBeepRow(beep: Beep) {
@@ -122,39 +131,61 @@ class ToneEditActivity : AppCompatActivity() {
         addBeep.isEnabled = beepList.childCount < Tone.MAX_BEEPS
         val tone = roundedTone()
         val pattern = tone.beeps.joinToString(",", "[", "]") { "[${it.style},${it.gapMs}]" }
-        val message = tone.message(slot())
-        preview.text = getString(R.string.tone_preview, message, message.length, Ble.MAX_WRITE_BYTES, pattern)
+        val message = tone.message(index)
+        preview.text = getString(
+            R.string.tone_preview, message, message.length, Ble.MAX_WRITE_BYTES, tone.testMessage(), pattern,
+        )
     }
 
-    /** This tone's slot, or the slot it will get when saved. */
-    private fun slot(): Int = if (index != -1) index else ToneStore(this).firstFreeSlot().coerceAtLeast(0)
-
+    /** Plays the pattern as currently edited once on the watch, without saving it here or storing it on the watch. */
     private fun test() {
         val address = LinkPrefs(this).address ?: return toast(getString(R.string.choose_watch_first))
         val tone = roundedTone()
         if (tone.beeps.isEmpty()) return toast(getString(R.string.tone_needs_beeps))
         SetupHelpers.background(this) {
             OlleeLink.ensureService()
-            OlleeLink.send(this, address, listOf(tone.messageBytes(slot())))
-            runOnUiThread { toast(getString(R.string.tone_sent, tone.message(slot()))) }
+            OlleeLink.send(this, address, listOf(tone.testMessageBytes()))
+            runOnUiThread { toast(getString(R.string.tone_sent, tone.testMessage())) }
         }
     }
 
+    /** Saves the tone in the app, then stores it on the watch (OWT|). The tone stays saved even if sending fails. */
     private fun save() {
-        val error = ToneStore(this).put(index, roundedTone())
+        val tone = roundedTone()
+        val error = ToneStore(this).put(index, tone)
         if (error != null) return toast(error)
-        finish()
+        val address = LinkPrefs(this).address
+        if (address == null) {
+            toast(getString(R.string.tone_saved_no_watch))
+            return finish()
+        }
+        saveButton.isEnabled = false
+        testButton.isEnabled = false
+        saveButton.setText(R.string.sending)
+        val app = applicationContext
+        val message = tone.message(index)
+        thread(name = "ollee-save-tone") {
+            val result = try {
+                OlleeLink.ensureService()
+                OlleeLink.send(app, address, listOf(tone.messageBytes(index)))
+                app.getString(R.string.tone_saved_sent, message)
+            } catch (e: Exception) {
+                app.getString(R.string.tone_saved_not_sent, e.message ?: e.toString())
+            }
+            runOnUiThread {
+                Toast.makeText(app, result, Toast.LENGTH_LONG).show()
+                if (!isDestroyed) finish()
+            }
+        }
     }
 
-    private fun confirmDelete() {
+    /** Loads the factory tone for this slot into the editor; it's saved only when the user taps Save. */
+    private fun confirmReset() {
         MaterialAlertDialogBuilder(this)
-            .setTitle(getString(R.string.delete_tone_title, name.text.toString().ifBlank { getString(R.string.edit_tone) }))
-            .setMessage(R.string.delete_tone_message)
+            .setTitle(R.string.reset_tone_title)
+            .setMessage(R.string.reset_tone_message)
             .setNegativeButton(R.string.cancel, null)
-            .setPositiveButton(R.string.delete) { _, _ ->
-                ToneStore(this).delete(index)
-                finish()
-            }
+            .setPositiveButton(R.string.reset) { _, _ -> show(Tone.DEFAULTS[index]) }
             .show()
     }
 

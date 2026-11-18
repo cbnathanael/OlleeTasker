@@ -3,6 +3,7 @@ package com.naate.olleetasker
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
+import android.widget.CheckBox
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.appbar.MaterialToolbar
@@ -23,6 +24,12 @@ class SettingsActivity : AppCompatActivity() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
         findViewById<View>(R.id.row_watch).setOnClickListener { SetupHelpers.chooseWatch(this, ::refresh) }
+        findViewById<View>(R.id.row_low_power).setOnClickListener {
+            val on = !prefs.lowPower
+            prefs.lowPower = on
+            findViewById<CheckBox>(R.id.low_power).isChecked = on
+            SetupHelpers.background(this, ::refresh) { OlleeLink.setLowPower(this, on) }
+        }
         findViewById<View>(R.id.row_permissions).setOnClickListener {
             if (SetupHelpers.permissionsGranted(this)) SetupHelpers.openAppSettings(this)
             else SetupHelpers.requestPermissions(this)
@@ -64,6 +71,11 @@ class SettingsActivity : AppCompatActivity() {
 
     private fun refresh() {
         findViewById<TextView>(R.id.summary_watch).text = prefs.address ?: getString(R.string.watch_not_chosen)
+        val lowPower = prefs.lowPower
+        findViewById<CheckBox>(R.id.low_power).isChecked = lowPower
+        findViewById<TextView>(R.id.summary_low_power).setText(
+            if (lowPower) R.string.settings_low_power_on else R.string.settings_low_power_off,
+        )
         findViewById<TextView>(R.id.summary_permissions).setText(
             if (SetupHelpers.permissionsGranted(this)) R.string.permissions_ok else R.string.permissions_missing,
         )

@@ -76,9 +76,15 @@
 
     <!-- Settings -->
     <string name="settings_section_watch">Watch</string>
+    <string name="settings_low_power">Request low power</string>
+    <string name="settings_low_power_on">Asks for a slower connection to save battery. Messages may take up to about half a second longer. If the connection becomes unreliable, turn this off.</string>
+    <string name="settings_low_power_off">Uses Android\'s balanced connection speed. Turn on to ask for a slower connection that saves battery.</string>
     <string name="settings_section_background">Permissions and background</string>
     <string name="settings_section_app">App</string>
     <string name="settings_watch">Watch</string>
+    <string name="auto_reconnect">Auto-reconnect</string>
+    <string name="auto_reconnect_on">If the watch disconnects, the plugin keeps trying to reconnect.</string>
+    <string name="auto_reconnect_off">If the watch disconnects or a connection fails, the link stops until you run Connect. Sends fail while it\'s stopped.</string>
     <string name="settings_permissions">Permissions</string>
     <string name="settings_battery">Battery optimization</string>
     <string name="settings_run_setup">Run setup again</string>
@@ -88,12 +94,8 @@
 
     <!-- Tones -->
     <string name="tones">Notification tones</string>
-    <string name="tones_intro">Create up to 5 beep patterns to send to the watch. Each is sent as one message: OWT|, the tone\'s number (0–4), then one letter per beep (lowercase = style 0, uppercase = style 1; a = 0 ms gap, b = 50 ms, … z = 1250 ms).</string>
-    <string name="tones_empty">No tones yet</string>
-    <string name="add_tone">Add tone</string>
-    <string name="tones_full">Maximum of %1$d tones reached</string>
-    <string name="new_tone">New tone</string>
-    <string name="edit_tone">Edit tone</string>
+    <string name="tones_intro">The watch has 5 beep patterns, numbered 0–4. Tap one to edit it; Save stores it here and sends it to the watch. Each is sent as one message: OWT|, the tone\'s number, then one letter per beep (lowercase = style 0, uppercase = style 1; a = 0 ms gap, b = 50 ms, … z = 1250 ms). Test on watch sends OWA| and the letters, which plays the pattern once without storing it.</string>
+    <string name="edit_tone">Tone %1$d</string>
     <string name="tone_name">Name</string>
     <string name="beeps">Beeps</string>
     <string name="beeps_help">For each beep, choose style 0 or 1 and the gap before the next beep (0–1250 ms, rounded to 50 ms).</string>
@@ -106,12 +108,17 @@
     <string name="remove_beep">Remove beep</string>
     <string name="add_beep">Add beep</string>
     <string name="test_on_watch">Test on watch</string>
-    <string name="delete">Delete</string>
-    <string name="delete_tone_title">Delete \"%1$s\"?</string>
-    <string name="delete_tone_message">Its number is freed for a new tone. Tasker actions that send this tone by name will fail until you create one with the same name.</string>
-    <string name="tone_preview">Message: %1$s (%2$d of %3$d bytes)\nPattern: %4$s</string>
+    <string name="reset_to_default">Reset to default</string>
+    <string name="reset">Reset</string>
+    <string name="reset_tone_title">Reset to the default tone?</string>
+    <string name="reset_tone_message">The editor is filled with the default name and beeps for this number. Tap Save to keep them.</string>
+    <string name="tone_preview">Saved as: %1$s (%2$d of %3$d bytes)\nTest: %4$s\nPattern: %5$s</string>
     <string name="tone_needs_beeps">Add at least one beep</string>
     <string name="tone_sent">Sent %1$s</string>
+    <string name="sending">Sending…</string>
+    <string name="tone_saved_sent">Saved and sent to watch (%1$s)</string>
+    <string name="tone_saved_not_sent">Saved, but not sent to the watch: %1$s</string>
+    <string name="tone_saved_no_watch">Saved. Choose a watch to send tones to it.</string>
     <plurals name="tone_summary">
         <item quantity="one">%1$d beep · %2$s</item>
         <item quantity="other">%1$d beeps · %2$s</item>
@@ -123,7 +130,5 @@
     <string name="hint_repeat">0</string>
     <string name="no_tone">No tone (-)</string>
     <string name="tone_slot_name">%1$d · %2$s</string>
-    <string name="empty_slot">(empty)</string>
     <string name="choose_tone">Choose tone</string>
-    <string name="no_tones_yet">No tones saved. Create them under Notification tones in the Ollee Watch app.</string>
 </resources>

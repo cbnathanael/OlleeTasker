@@ -219,7 +219,7 @@ class EditActivity : AppCompatActivity() {
         if (kind == ActionKind.MESSAGE) {
             val slots = ToneStore(this).slots()
             val items = listOf(getString(R.string.no_tone)) + slots.mapIndexed { i, t ->
-                getString(R.string.tone_slot_name, i, t?.name ?: getString(R.string.empty_slot))
+                getString(R.string.tone_slot_name, i, t.name)
             }
             MaterialAlertDialogBuilder(this)
                 .setTitle(R.string.choose_tone)
@@ -228,11 +228,7 @@ class EditActivity : AppCompatActivity() {
                 .show()
             return
         }
-        val names = ToneStore(this).all().map { it.name }
-        if (names.isEmpty()) {
-            Toast.makeText(this, R.string.no_tones_yet, Toast.LENGTH_LONG).show()
-            return
-        }
+        val names = ToneStore(this).slots().map { it.name }
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.choose_tone)
             .setItems(names.toTypedArray()) { _, which -> tone.setText(names[which]) }
