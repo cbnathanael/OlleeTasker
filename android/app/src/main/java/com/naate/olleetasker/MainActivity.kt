@@ -6,6 +6,7 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -46,6 +47,10 @@ class MainActivity : AppCompatActivity() {
                 if (prefs.paused) OlleeLink.resume(this)
                 OlleeLink.start(this, address)
             }
+        }
+        findViewById<CheckBox>(R.id.auto_reconnect).setOnClickListener { view ->
+            val on = (view as CheckBox).isChecked
+            SetupHelpers.background(this, ::refresh) { OlleeLink.setAutoReconnect(this, on) }
         }
         findViewById<Button>(R.id.pause).setOnClickListener {
             SetupHelpers.background(this, ::refresh) {
@@ -99,6 +104,11 @@ class MainActivity : AppCompatActivity() {
             setText(if (prefs.paused) R.string.resume else R.string.pause)
             isEnabled = running
         }
+        val auto = prefs.autoReconnect
+        findViewById<CheckBox>(R.id.auto_reconnect).isChecked = auto
+        findViewById<TextView>(R.id.auto_reconnect_summary).setText(
+            if (auto) R.string.auto_reconnect_on else R.string.auto_reconnect_off,
+        )
     }
 
     private fun toast(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_LONG).show()

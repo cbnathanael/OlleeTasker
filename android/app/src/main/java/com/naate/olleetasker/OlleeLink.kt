@@ -55,12 +55,16 @@ object OlleeLink {
     }
 
     const val PAUSED_MESSAGE = "The watch link is paused (the Ollee app is in use). Run the Resume action first."
+    const val NOT_CONNECTED_MESSAGE = "The watch isn't connected and auto-reconnect is off. Run the Connect action first."
     private const val TAG = "OlleeLink"
     private const val CONNECT_TIMEOUT_MS = 20_000L
     private const val OP_TIMEOUT_MS = 10_000L
     private const val LOCK_TIMEOUT_MS = 40_000L
-    /** Notifications are 20-byte chunks; a full chunk may be followed by more of the same message. */
-    private const val MESSAGE_IDLE_MS = 300L
+    /**
+     * Notifications are 20-byte chunks; a full chunk may be followed by more of the same message. Long enough to
+     * span a low-power connection's quiet period (~125 ms interval × 3 with slave latency 2).
+     */
+    private const val MESSAGE_IDLE_MS = 500L
     private val RETRY_DELAYS_MS = longArrayOf(1_000, 10_000, 30_000)
 
     /** Worst case for an action that has to wait for the link and connect first. */
@@ -75,6 +79,8 @@ object OlleeLink {
     private val listeners = CopyOnWriteArraySet<Listener>()
     private val pending = AtomicReference<Pending?>()
     private val failures = AtomicInteger()
+
+    @Volatile private var lastConnectError: String? = null
 
     @Volatile var state = State.STOPPED
         private set
@@ -133,7 +139,10 @@ object OlleeLink {
         init(context)
         reconnectExecutor.execute {
             if (!prefs.enabled || address == null) return@execute
-            if (prefs.paused) {
+            if (!prefs.autoReconnect && state != State.CONNECTED && !prefs.paused) {
+                // The process was restarted while the link was up; with auto-reconnect off, that counts as a drop.
+                stop(appContext)
+            } else if (prefs.paused) {
                 setState(State.PAUSED, "paused")
             } else {
                 if (state == State.STOPPED || state == State.PAUSED) setState(State.WAITING, null)
@@ -178,6 +187,36 @@ object OlleeLink {
         kick()
     }
 
+    /**
+     * Turns auto-reconnect on or off. Turning it off while the link is waiting to reconnect stops the link.
+     * Blocking; call from a background thread.
+     */
+    fun setAutoReconnect(context: Context, on: Boolean) {
+        init(context)
+        prefs.autoReconnect = on
+        if (on) return
+        cancelRetry()
+        val stopped = withLock {
+            if (!prefs.enabled || prefs.paused || state == State.CONNECTED) return@withLock false
+            stopAfterFailureLocked()
+            true
+        }
+        if (stopped) appContext.stopService(Intent(appContext, LinkService::class.java))
+    }
+
+    /**
+     * Turns the low-power connection request on or off, applying it to the live connection if there is one.
+     * Blocking; call from a background thread.
+     */
+    fun setLowPower(context: Context, on: Boolean) {
+        init(context)
+        prefs.lowPower = on
+        withLock {
+            val g = gatt
+            if (state == State.CONNECTED && g != null) requestPriorityLocked(g)
+        }
+    }
+
     fun onBluetoothOn() {
         if (!::appContext.isInitialized || !wanted()) return
         failures.set(0)
@@ -202,26 +241,52 @@ object OlleeLink {
 
     // ---- Operations (blocking; call from a background thread) ----
 
-    fun connect(context: Context, address: String) = withReadyLink(context, address) { }
+    /** Connects (or switches) to [address] and waits for the connection. */
+    fun connect(context: Context, address: String) = withReadyLink(context, address, connect = true) { }
 
-    fun send(context: Context, address: String, chunks: List<ByteArray>) = withReadyLink(context, address) { g ->
+    /**
+     * Writes [chunks] to the watch. Connects first if needed, unless auto-reconnect is off, in which case the link
+     * must already be connected to [address].
+     */
+    fun send(context: Context, address: String, chunks: List<ByteArray>) = withReadyLink(context, address, connect = false) { g ->
         val c = rx ?: throw GattException(NO_FORGE)
         chunks.forEach { writeLocked(g, c, it) }
     }
 
-    private fun <T> withReadyLink(context: Context, address: String, block: (BluetoothGatt) -> T): T {
-        start(context, address)
+    private fun <T> withReadyLink(
+        context: Context,
+        address: String,
+        connect: Boolean,
+        block: (BluetoothGatt) -> T,
+    ): T {
+        init(context)
+        if (connect || prefs.autoReconnect) {
+            start(context, address)
+        } else {
+            if (prefs.paused) throw GattException(PAUSED_MESSAGE)
+            if (state != State.CONNECTED) throw GattException(NOT_CONNECTED_MESSAGE)
+            val current = this.address
+            if (!address.equals(current, ignoreCase = true)) {
+                throw GattException("Connected to $current, not $address. Run the Connect action to switch watches.")
+            }
+        }
         return withLock {
             if (prefs.paused) throw GattException(PAUSED_MESSAGE)
-            if (state != State.CONNECTED) connectLocked()
+            if (state != State.CONNECTED) {
+                // Auto-reconnect is off and the link dropped (or the connect attempt failed) in the meantime.
+                if (!prefs.enabled || (!connect && !prefs.autoReconnect)) {
+                    throw GattException(
+                        if (connect) "Couldn't connect to the watch: ${lastConnectError ?: "connection failed"}" else NOT_CONNECTED_MESSAGE,
+                    )
+                }
+                connectLocked()
+            }
             val g = gatt ?: throw GattException("Not connected")
             try {
                 block(g)
             } catch (e: GattTimeoutException) {
                 // The stack is in an unknown state; start over with a fresh connection.
-                closeGattLocked()
-                setState(idleState(), "lost")
-                scheduleReconnect()
+                linkFailedLocked()
                 throw e
             }
         }
@@ -230,14 +295,23 @@ object OlleeLink {
     // ---- Connection management (opLock held) ----
 
     private fun connectLocked() {
-        val addr = address ?: throw GattException("No watch chosen")
-        val adapter = adapter() ?: throw GattException("Bluetooth is not available on this device")
-        if (!adapter.isEnabled) throw GattException("Bluetooth is turned off")
-        closeGattLocked()
-        setState(State.CONNECTING, null)
-        val cb = Callback()
-        callback = cb
+        val addr: String
+        val adapter: BluetoothAdapter
         try {
+            addr = address ?: throw GattException("No watch chosen")
+            adapter = adapter() ?: throw GattException("Bluetooth is not available on this device")
+            if (!adapter.isEnabled) throw GattException("Bluetooth is turned off")
+        } catch (e: GattException) {
+            lastConnectError = e.message
+            // With auto-reconnect on, the link waits (Bluetooth coming back on kicks it); with it off, stop now.
+            if (!prefs.autoReconnect) linkFailedLocked()
+            throw e
+        }
+        try {
+            closeGattLocked()
+            setState(State.CONNECTING, null)
+            val cb = Callback()
+            callback = cb
             runOp(Op.CONNECT, CONNECT_TIMEOUT_MS, "connection") {
                 val g = adapter.getRemoteDevice(addr).connectGatt(appContext, false, cb, BluetoothDevice.TRANSPORT_LE)
                 gatt = g
@@ -247,14 +321,16 @@ object OlleeLink {
             failures.set(0)
             setState(State.CONNECTED, null)
         } catch (e: Exception) {
-            closeGattLocked()
-            setState(idleState(), "lost")
-            scheduleReconnect()
+            lastConnectError = e.message
+            linkFailedLocked()
             throw e
         }
     }
 
-    /** Discovers services and turns on notifications from the watch's TX characteristic. */
+    /**
+     * Discovers services, turns on notifications from the watch's TX characteristic, then requests the
+     * connection priority.
+     */
     private fun setupLocked(g: BluetoothGatt) {
         runOp(Op.DISCOVER, OP_TIMEOUT_MS, "service discovery") { g.discoverServices() }
         val service = g.getService(Ble.FORGE_SERVICE)
@@ -263,9 +339,25 @@ object OlleeLink {
         val notifyChar = tx
         if (notifyChar == null) {
             Log.w(TAG, "Forge service/TX characteristic not found; messages from the watch won't be received")
-            return
+        } else {
+            enableNotificationsLocked(g, notifyChar)
         }
-        enableNotificationsLocked(g, notifyChar)
+        requestPriorityLocked(g)
+    }
+
+    /**
+     * Asks for a low-power or balanced connection. Balanced is requested explicitly because some phones keep the
+     * last request. The watch may refuse or pick its own parameters, and a failed request never drops the link.
+     */
+    private fun requestPriorityLocked(g: BluetoothGatt) {
+        val lowPower = prefs.lowPower
+        val priority = if (lowPower) BluetoothGatt.CONNECTION_PRIORITY_LOW_POWER else BluetoothGatt.CONNECTION_PRIORITY_BALANCED
+        try {
+            val ok = g.requestConnectionPriority(priority)
+            Log.i(TAG, "Requested ${if (lowPower) "low-power" else "balanced"} connection priority: ${if (ok) "accepted" else "rejected"}")
+        } catch (e: Exception) {
+            Log.w(TAG, "Connection priority request failed", e)
+        }
     }
 
     @Suppress("DEPRECATION")
@@ -341,10 +433,34 @@ object OlleeLink {
         else -> State.WAITING
     }
 
+    /**
+     * Handles a lost connection or a failed connect attempt (opLock held). With auto-reconnect on, schedules a retry;
+     * with it off, stops the link (like Disconnect) so nothing reconnects until the user runs Connect.
+     */
+    private fun linkFailedLocked() {
+        closeGattLocked()
+        if (prefs.autoReconnect || !wanted()) {
+            setState(idleState(), "lost")
+            scheduleReconnect()
+            return
+        }
+        stopAfterFailureLocked()
+        appContext.stopService(Intent(appContext, LinkService::class.java))
+    }
+
+    /** Stops the link without reconnecting (opLock held). The caller stops [LinkService]. */
+    private fun stopAfterFailureLocked() {
+        prefs.enabled = false
+        cancelRetry()
+        interruptPending(NOT_CONNECTED_MESSAGE)
+        closeGattLocked()
+        setState(State.STOPPED, "lost")
+    }
+
     /** Tries a few direct connections with backoff, then falls back to a low-power autoConnect. */
     @Synchronized
     private fun scheduleReconnect() {
-        if (!wanted() || retryTask?.isDone == false) return
+        if (!wanted() || !prefs.autoReconnect || retryTask?.isDone == false) return
         val attempt = failures.getAndIncrement()
         retryTask = if (attempt < RETRY_DELAYS_MS.size) {
             reconnectExecutor.schedule(::backgroundConnect, RETRY_DELAYS_MS[attempt], TimeUnit.MILLISECONDS)
@@ -411,9 +527,7 @@ object OlleeLink {
             setState(State.CONNECTED, null)
         } catch (e: Exception) {
             Log.w(TAG, "Setup after autoConnect failed", e)
-            closeGattLocked()
-            setState(idleState(), "lost")
-            scheduleReconnect()
+            linkFailedLocked()
         } finally {
             opLock.unlock()
         }
@@ -423,9 +537,7 @@ object OlleeLink {
         opLock.lock()
         try {
             if (callback !== cb) return
-            closeGattLocked()
-            setState(idleState(), "lost")
-            scheduleReconnect()
+            linkFailedLocked()
         } finally {
             opLock.unlock()
         }

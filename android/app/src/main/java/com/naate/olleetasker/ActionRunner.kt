@@ -101,7 +101,7 @@ object ActionRunner {
         val store = ToneStore(context)
         val slot = store.slotOf(n)
         return store.slots().getOrNull(slot)?.let { slot to it }
-            ?: throw GattException("There's no tone named \"$n\". Create it under Notification tones in the Ollee Watch app.")
+            ?: throw GattException("There's no tone named \"$n\". Check the names under Notification tones in the Ollee Watch app.")
     }
 
     private val UNSET_VARIABLE = Regex("%[A-Za-z0-9_]+")

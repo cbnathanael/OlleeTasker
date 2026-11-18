@@ -1,5 +1,6 @@
 // Simple Notification
 // Displays the last recieved message, along with a notification tone and led flash.
+// The last message text is cleared after an hour
 // L button toggles the LED flash when a tone plays
 // A button toggles notification plays
 // Listens for two BLE messages:
@@ -10,6 +11,7 @@
 //      A lowercase letter is Ollee.beep(), an uppercase is Ollee.beepShort()
 //      The letter itself is the gap, in milliseconds to pause after the beep in 50ms increments, where a = 0ms and z = 1250ms
 //  So "OWT|2ggA" would set tones[2] = [[0,300],[0,300],[1,0]]
+//    "OWA|"<encoded pattern string> (e.g. "OWA|ggA") plays the pattern once without storing it (used by Test on watch)
 // 2) Notification pattern: "OW"<pattern number><pattern play times><message string> example: "OW00Hello"
 //    Prefix "OW" indicates a new message
 //    The first digit is the tone pattern to play
@@ -49,7 +51,6 @@ var tones = [
     [0, 0],
   ],
 ];
-
 // Runtime subscription bitmask.
 var subscribe = E_BUTTONS + E_BLE_RX + E_BLE_CONNECT + E_BLE_DISCONNECT;
 
@@ -79,6 +80,7 @@ var soundAt = 0;
 var playTone = true;
 var useLed = true;
 var lastMsg = "";
+var lastMsgTime = 0;
 
 function now() {
   return new Date().getTime();
@@ -165,11 +167,13 @@ function patternDuration(notes) {
 }
 
 function notify(index, repeat) {
+  return playNotes(tones[index], repeat);
+}
+
+function playNotes(p, repeat) {
   stopSound();
   if (!playTone) return;
-
-  var p = tones[index];
-  if (!p) return;
+  if (!p || !p.length) return;
 
   pattern = { notes: p, repeats: repeat, repeatGap: 1500 };
   notePos = 0;
@@ -276,6 +280,10 @@ function enter() {
   locked = false;
   idleAt = now() + IDLE_MS;
   Ollee.clear();
+  if (now() - lastMsgTime >= 3.6e6) {
+    lastMsg = "";
+  }
+
   wake();
   render();
   startScroll();
@@ -306,6 +314,16 @@ function ble_rx(data) {
   if (data.substr(0, 4) == "OWT|") {
     // "OWT|2ggA": store tone 2
     tones[+data[4]] = decodeTone(data.substr(5));
+    var slotTone = []
+    for (var i = 1; i <= +data[4]+1; i++) {
+      slotTone.push([0, 200]);
+    }
+    playNotes(slotTone, 0);
+  } else if (data.substr(0, 4) == "OWA|") {
+    // "OWA|ggA": play this pattern once without storing it
+    playNotes(decodeTone(data.substr(4)), 0);
+    pump();
+    return;
   } else if (data.substr(0, 2) == "OW") {
     // "OW23Hello": tone 2, repeat 3 times, text "Hello"
     var n = data[2],
@@ -315,11 +333,11 @@ function ble_rx(data) {
       notify(+n, repeats);
     }
     lastMsg = data.substr(4);
+    lastMsgTime = now();
     if(Ollee.active()) startScroll();
     pump();
     return;
   }
-  Ollee.beep();
   pump();
 }
 
