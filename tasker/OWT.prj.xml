@@ -1,5 +1,4 @@
 <TaskerData sr="" dvi="1" tv="6.7.9">
-	<dmetric>1080.0,2424.0</dmetric>
 	<Profile sr="prof27" ve="2">
 		<cdate>1794936341343</cdate>
 		<clp>true</clp>
@@ -22,7 +21,7 @@
 		<edate>1795009398023</edate>
 		<flags>8</flags>
 		<id>28</id>
-		<mid0>2</mid0>
+		<mid0>30</mid0>
 		<nme>New Text Mesaage</nme>
 		<Event sr="con0" ve="2">
 			<code>461</code>
@@ -53,7 +52,7 @@
 		<edate>1795009407402</edate>
 		<flags>8</flags>
 		<id>29</id>
-		<mid0>25</mid0>
+		<mid0>31</mid0>
 		<nme>Incoming Call</nme>
 		<Event sr="con0" ve="2">
 			<code>6</code>
@@ -65,124 +64,8 @@
 		<id>bdd38287-636e-4f09-9555-2f46106ed735</id>
 		<name>OWT</name>
 		<pids>27,28,29</pids>
-		<scenes>Popup</scenes>
-		<tids>30,31,8,2,22,23,25</tids>
+		<tids>30,31,22,23</tids>
 	</Project>
-	<Scene sr="scenePopup">
-		<cdate>1794507544056</cdate>
-		<edate>1794659158879</edate>
-		<heightLand>-1</heightLand>
-		<heightPort>562</heightPort>
-		<nme>Popup</nme>
-		<widthLand>-1</widthLand>
-		<widthPort>675</widthPort>
-		<TextElement sr="elements0" ve="3">
-			<flags>4</flags>
-			<geom>13,0,661,162,6,0,294,72</geom>
-			<Str sr="arg0" ve="3">Title</Str>
-			<Str sr="arg1" ve="3">Title</Str>
-			<Int sr="arg2" val="28"/>
-			<Int sr="arg3" val="100"/>
-			<Str sr="arg4" ve="3">#FF5E5E5E</Str>
-			<Str sr="arg5" ve="3"/>
-			<Int sr="arg6" val="3"/>
-			<Int sr="arg7"/>
-			<Int sr="arg8"/>
-		</TextElement>
-		<RectElement sr="elements1">
-			<flags>4</flags>
-			<geom>0,162,675,6,-1,-1,-1,-1</geom>
-			<Str sr="arg0" ve="3">Header</Str>
-			<Int sr="arg1" val="0"/>
-			<Str sr="arg2" ve="3">#77333333</Str>
-			<Str sr="arg3" ve="3"/>
-			<Int sr="arg4" val="0"/>
-			<Str sr="arg5" ve="3">#FF000000</Str>
-			<Int sr="arg6" val="0"/>
-			<Int sr="arg7" val="0"/>
-		</RectElement>
-		<TextElement sr="elements2" ve="3">
-			<clickTask>-936</clickTask>
-			<flags>5</flags>
-			<geom>15,177,643,328,-1,-1,-1,-1</geom>
-			<Str sr="arg0" ve="3">Text1</Str>
-			<Str sr="arg1" ve="3">Text</Str>
-			<Int sr="arg2" val="22"/>
-			<Int sr="arg3" val="100"/>
-			<Str sr="arg4" ve="3">#FFFFFFFF</Str>
-			<Str sr="arg5" ve="3"/>
-			<Int sr="arg6" val="0"/>
-			<Int sr="arg7" val="1"/>
-			<Int sr="arg8"/>
-		</TextElement>
-		<PropertiesElement sr="props">
-			<Int sr="arg0" val="1"/>
-			<Int sr="arg1" val="0"/>
-			<Str sr="arg2" ve="3">#FF000000</Str>
-			<Int sr="arg3" val="0"/>
-			<Str sr="arg4" ve="3">Popup</Str>
-			<Str sr="arg5" ve="3"/>
-			<Img sr="arg6" ve="2"/>
-			<Str sr="arg7" ve="3"/>
-		</PropertiesElement>
-	</Scene>
-	<Task sr="task2">
-		<cdate>1794428250219</cdate>
-		<edate>1795009273967</edate>
-		<id>2</id>
-		<nme>TextNotification</nme>
-		<pri>6</pri>
-		<Action sr="act0" ve="7">
-			<code>130</code>
-			<Str sr="arg0" ve="3">Beep-IO Send</Str>
-			<Int sr="arg1">
-				<var>%priority</var>
-			</Int>
-			<Int sr="arg10" val="1"/>
-			<Str sr="arg2" ve="3">BPIO|1|0|0</Str>
-			<Str sr="arg3" ve="3"/>
-			<Str sr="arg4" ve="3"/>
-			<Int sr="arg5" val="0"/>
-			<Int sr="arg6" val="0"/>
-			<Str sr="arg7" ve="3"/>
-			<Int sr="arg8" val="0"/>
-			<Int sr="arg9" val="0"/>
-		</Action>
-		<Action sr="act1" ve="7">
-			<code>130</code>
-			<Str sr="arg0" ve="3">Beep-IO Send</Str>
-			<Int sr="arg1">
-				<var>%priority</var>
-			</Int>
-			<Int sr="arg10" val="1"/>
-			<Str sr="arg2" ve="3">%evtprm2</Str>
-			<Str sr="arg3" ve="3"/>
-			<Str sr="arg4" ve="3"/>
-			<Int sr="arg5" val="1"/>
-			<Int sr="arg6" val="0"/>
-			<Str sr="arg7" ve="3"/>
-			<Int sr="arg8" val="0"/>
-			<Int sr="arg9" val="0"/>
-		</Action>
-		<Action sr="act2" ve="7">
-			<code>550</code>
-			<on>false</on>
-			<Str sr="arg0" ve="3"/>
-			<Str sr="arg1" ve="3">Title: %evtprm2
-
-Text: %evtprm3
-
-Subtext: %evtprm4
-
-Messages: %evtprm5
-
-Cat: %evtprm7</Str>
-			<Str sr="arg2" ve="3"/>
-			<Str sr="arg3" ve="3">Popup</Str>
-			<Int sr="arg4" val="600"/>
-			<Int sr="arg5" val="1"/>
-		</Action>
-	</Task>
 	<Task sr="task22">
 		<cdate>1794936369035</cdate>
 		<edate>1794936398800</edate>
@@ -281,63 +164,6 @@ Address of the linked watch&lt;/_array_net.dinglisch.android.tasker.RELEVANT_VAR
 			<Int sr="arg4" val="1"/>
 		</Action>
 	</Task>
-	<Task sr="task25">
-		<cdate>1794428250219</cdate>
-		<edate>1794938085349</edate>
-		<id>25</id>
-		<nme>CallNotification</nme>
-		<pri>100</pri>
-		<Action sr="act0" ve="7">
-			<code>130</code>
-			<Str sr="arg0" ve="3">Beep-IO Send</Str>
-			<Int sr="arg1">
-				<var>%priority</var>
-			</Int>
-			<Int sr="arg10" val="1"/>
-			<Str sr="arg2" ve="3">BPIO|4|3|0</Str>
-			<Str sr="arg3" ve="3"/>
-			<Str sr="arg4" ve="3"/>
-			<Int sr="arg5" val="0"/>
-			<Int sr="arg6" val="0"/>
-			<Str sr="arg7" ve="3"/>
-			<Int sr="arg8" val="0"/>
-			<Int sr="arg9" val="0"/>
-		</Action>
-		<Action sr="act1" ve="7">
-			<code>130</code>
-			<Str sr="arg0" ve="3">Beep-IO Send</Str>
-			<Int sr="arg1">
-				<var>%priority</var>
-			</Int>
-			<Int sr="arg10" val="1"/>
-			<Str sr="arg2" ve="3">%evtprm2</Str>
-			<Str sr="arg3" ve="3"/>
-			<Str sr="arg4" ve="3"/>
-			<Int sr="arg5" val="0"/>
-			<Int sr="arg6" val="0"/>
-			<Str sr="arg7" ve="3"/>
-			<Int sr="arg8" val="0"/>
-			<Int sr="arg9" val="0"/>
-		</Action>
-		<Action sr="act2" ve="7">
-			<code>550</code>
-			<on>false</on>
-			<Str sr="arg0" ve="3"/>
-			<Str sr="arg1" ve="3">Title: %evtprm2
-
-Text: %evtprm3
-
-Subtext: %evtprm4
-
-Messages: %evtprm5
-
-Cat: %evtprm7</Str>
-			<Str sr="arg2" ve="3"/>
-			<Str sr="arg3" ve="3">Popup</Str>
-			<Int sr="arg4" val="600"/>
-			<Int sr="arg5" val="1"/>
-		</Action>
-	</Task>
 	<Task sr="task30">
 		<cdate>1795009223601</cdate>
 		<edate>1795009293622</edate>
@@ -433,94 +259,6 @@ Address of the linked watch&lt;/_array_net.dinglisch.android.tasker.RELEVANT_VAR
 			<Str sr="arg2" ve="3">com.naate.olleetasker.EditActivity</Str>
 			<Int sr="arg3" val="100"/>
 			<Int sr="arg4" val="1"/>
-		</Action>
-	</Task>
-	<Task sr="task8">
-		<cdate>1794417507823</cdate>
-		<edate>1794938062158</edate>
-		<id>8</id>
-		<nme>Beep-IO Send</nme>
-		<pri>100</pri>
-		<Action sr="act0" ve="7">
-			<code>129</code>
-			<label>Encode Parameter 1 as UTF-8 hex</label>
-			<Str sr="arg0" ve="3">var sendtext = local("par1");
-var sendhex = "";
-var sendready = "no";
-
-sendtext = sendtext == null ? "" : String(sendtext);
-
-if (!sendtext || sendtext === "%par1") {
-    flash("Enter your message in Parameter 1.");
-} else {
-    try {
-        var bytes = "";
-
-        for (var i = 0; i &lt; sendtext.length &amp;&amp; bytes.length &lt; 20; i++) {
-            var ch = sendtext.charAt(i);
-            var code = sendtext.charCodeAt(i);
-
-            if (code &gt;= 0xD800 &amp;&amp; code &lt;= 0xDBFF &amp;&amp;
-                i + 1 &lt; sendtext.length) {
-                var next = sendtext.charCodeAt(i + 1);
-
-                if (next &gt;= 0xDC00 &amp;&amp; next &lt;= 0xDFFF) {
-                    ch += sendtext.charAt(++i);
-                }
-            }
-
-            var encoded = unescape(encodeURIComponent(ch));
-
-            if (bytes.length + encoded.length &gt; 20) {
-                break;
-            }
-
-            bytes += encoded;
-        }
-
-        for (var j = 0; j &lt; bytes.length; j++) {
-            sendhex += ("0" + bytes.charCodeAt(j).toString(16)).slice(-2);
-        }
-
-        if (bytes.length) {
-            sendready = "yes";
-        }
-    } catch (err) {
-        sendhex = "";
-        sendready = "no";
-        flash("Invalid text encoding.");
-    }
-}</Str>
-			<Str sr="arg1" ve="3"/>
-			<Int sr="arg2" val="1"/>
-			<Int sr="arg3" val="45"/>
-		</Action>
-		<Action sr="act1" ve="7">
-			<code>37</code>
-			<label>Send only when text is valid</label>
-			<ConditionList sr="if">
-				<Condition sr="c0" ve="3">
-					<lhs>%sendready</lhs>
-					<op>2</op>
-					<rhs>yes</rhs>
-				</Condition>
-			</ConditionList>
-		</Action>
-		<Action sr="act2" ve="7">
-			<code>877</code>
-			<Str sr="arg0" ve="3">nodomain.freeyourgadget.gadgetbridge.ble_api.commands.CHARACTERISTIC_WRITE</Str>
-			<Int sr="arg1" val="0"/>
-			<Str sr="arg2" ve="3"/>
-			<Str sr="arg3" ve="3"/>
-			<Str sr="arg4" ve="3">EXTRA_DEVICE_ADDRESS:%BIOTestAddress</Str>
-			<Str sr="arg5" ve="3">EXTRA_CHARACTERISTIC_UUID:c6fb0002-a37d-40ac-89be-887d25e1f5b3</Str>
-			<Str sr="arg6" ve="3">EXTRA_PAYLOAD: (String) %sendhex</Str>
-			<Str sr="arg7" ve="3">nodomain.freeyourgadget.gadgetbridge</Str>
-			<Str sr="arg8" ve="3"/>
-			<Int sr="arg9" val="0"/>
-		</Action>
-		<Action sr="act3" ve="7">
-			<code>38</code>
 		</Action>
 	</Task>
 </TaskerData>
